@@ -46,6 +46,8 @@ SAVED_REG=$(grep -s '^CPSYNC_REGISTRATION=' "$DIR/.env" | cut -d= -f2- || true)
 find "$DIR" -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf {} +
 cp -a "$TMP/." "$DIR/"
 rm -rf "$TMP"
+curl -fsS --max-time 15 -H 'Accept: application/vnd.github.sha' \
+  "https://api.github.com/repos/$REPO/commits/$BRANCH" > "$DIR/.commit" 2>/dev/null || true
 
 # --- 4. Адрес сайта
 DOMAIN="${CPSYNC_DOMAIN:-$SAVED_DOMAIN}"
@@ -72,6 +74,34 @@ say "Запускаю CP Sync…"
 cd "$DIR"
 docker compose up -d --build --remove-orphans
 docker image prune -f >/dev/null 2>&1 || true
+
+# --- 7. Автообновление: раз в час сервер сам проверяет GitHub и ставит новую версию
+cat > /usr/local/bin/cpsync-update <<UPD
+#!/usr/bin/env bash
+NEW=\$(curl -fsS --max-time 15 -H 'Accept: application/vnd.github.sha' "https://api.github.com/repos/$REPO/commits/$BRANCH" || true)
+OLD=\$(cat $DIR/.commit 2>/dev/null || true)
+[ -n "\$NEW" ] && [ "\$NEW" != "\$OLD" ] || exit 0
+curl -fsSL "https://raw.githubusercontent.com/$REPO/$BRANCH/deploy/install.sh" | CPSYNC_REPO=$REPO CPSYNC_BRANCH=$BRANCH CPSYNC_QUICK=1 bash
+UPD
+chmod +x /usr/local/bin/cpsync-update
+cat > /etc/systemd/system/cpsync-update.service <<UNIT
+[Unit]
+Description=CP Sync auto-update
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/cpsync-update
+UNIT
+cat > /etc/systemd/system/cpsync-update.timer <<UNIT
+[Unit]
+Description=CP Sync auto-update (hourly)
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=1h
+[Install]
+WantedBy=timers.target
+UNIT
+systemctl daemon-reload >/dev/null 2>&1 && systemctl enable --now cpsync-update.timer >/dev/null 2>&1 || true
+[ -n "${CPSYNC_QUICK:-}" ] && { echo "CP Sync обновлён"; exit 0; }
 
 say "Жду HTTPS-сертификат для $DOMAIN…"
 for _ in $(seq 1 60); do

@@ -363,11 +363,11 @@ async function viewProject(name) {
             h('div', { class: 'meta' }, dirName(p) ? dirName(p) + ' · ' : '', ago(f.mtime), f.by ? ' · ' + f.by : '')),
           h('span', { class: 'chev', html: ICONS.chev }));
       };
-      box.replaceChildren(
+      box.replaceChildren(h('div', {},
         !files.length ? h('div', { class: 'empty' }, h('h3', {}, 'В проекте нет файлов'), h('p', {}, 'Создайте решение — например, A.cpp.'),
           h('button', { class: 'btn primary', onclick: addFile }, 'Создать файл')) : null,
         runnable.length ? [h('div', { class: 'section-title' }, 'Решения · новые сверху'), h('div', { class: 'list' }, runnable.map(row))] : null,
-        other.length ? [h('div', { class: 'section-title' }, 'Другие файлы'), h('div', { class: 'list' }, other.map(row))] : null);
+        other.length ? [h('div', { class: 'section-title' }, 'Другие файлы'), h('div', { class: 'list' }, other.map(row))] : null));
     } catch (e) { box.replaceChildren(errorBox(e)); }
   };
   await load();
