@@ -1,0 +1,5 @@
+#cloud-config
+# Вставьте этот текст в поле «Cloud config» / «User data» при создании сервера —
+# через 3–5 минут CP Sync откроется по адресу https://<IP-с-дефисами>.sslip.io
+runcmd:
+  - curl -fsSL https://raw.githubusercontent.com/Nmk102/cpsync/main/deploy/install.sh | bash

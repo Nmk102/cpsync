@@ -1,0 +1,78 @@
+<idea-plugin>
+    <id>dev.cpsync.plugin</id>
+    <name>CP Sync</name>
+    <vendor>CP Sync</vendor>
+    <description><![CDATA[
+    <p>Sync competitive programming projects between your computers and run tests from your phone.</p>
+    <p>Синхронизация олимпиадных проектов между компьютерами и запуск тестов с телефона.</p>
+    <ul>
+      <li>Вход в аккаунт CP Sync — и проекты сами синхронизируются: при сохранении файла и при изменениях на других устройствах.</li>
+      <li>Кнопка «Синхронизировать» на панели инструментов.</li>
+      <li>Открытие проекта с другого компьютера в один клик.</li>
+      <li>Подключение телефона по QR-коду: тесты запускаются на сервере, а результаты видны в телефоне.</li>
+    </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable parentId="tools" instance="dev.cpsync.CpConfigurable"
+                                 id="dev.cpsync.settings" displayName="CP Sync"/>
+        <toolWindow id="CP Sync" anchor="right" icon="/icons/cpsync.svg"
+                    factoryClass="dev.cpsync.CpToolWindowFactory"/>
+        <postStartupActivity implementation="dev.cpsync.CpStartup"/>
+        <notificationGroup id="CP Sync" displayType="BALLOON"/>
+    </extensions>
+
+    <applicationListeners>
+        <listener class="dev.cpsync.CpFileListener" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener class="dev.cpsync.CpAppListener" topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+
+    <actions>
+        <action id="dev.cpsync.SyncNow" class="dev.cpsync.SyncNowAction"
+                text="CP Sync: синхронизировать" description="Синхронизировать этот проект с сервером CP Sync"
+                icon="/icons/cpsync.svg">
+            <add-to-group group-id="MainToolbarRight" anchor="first"/>
+        </action>
+        <action id="dev.cpsync.Share" class="dev.cpsync.ShareProjectAction"
+                text="Поделиться проектом…" description="Отправить этот проект на сервер и синхронизировать его"
+                icon="AllIcons.Actions.Upload"/>
+        <action id="dev.cpsync.OpenFromServer" class="dev.cpsync.OpenFromServerAction"
+                text="Открыть проект с сервера…" description="Скачать проект с другого устройства и открыть его"
+                icon="AllIcons.Actions.Download">
+            <add-to-group group-id="WelcomeScreen.QuickStart" anchor="last"/>
+        </action>
+        <action id="dev.cpsync.Unshare" class="dev.cpsync.UnshareProjectAction"
+                text="Отключить синхронизацию этой папки" description="Перестать синхронизировать этот проект"/>
+        <action id="dev.cpsync.Login" class="dev.cpsync.LoginAction"
+                text="Войти в CP Sync…" description="Войти или создать аккаунт CP Sync" icon="AllIcons.General.User"/>
+        <action id="dev.cpsync.Logout" class="dev.cpsync.LogoutAction"
+                text="Выйти из CP Sync" description="Выйти из аккаунта на этом компьютере"/>
+        <action id="dev.cpsync.ConnectPhone" class="dev.cpsync.ConnectPhoneAction"
+                text="Подключить телефон…" description="Показать QR-код для входа с телефона"
+                icon="AllIcons.Nodes.Deploy"/>
+        <action id="dev.cpsync.OpenWebsite" class="dev.cpsync.OpenWebsiteAction"
+                text="Открыть сайт CP Sync" description="Открыть веб-версию: тесты, редактор, устройства"
+                icon="AllIcons.General.Web"/>
+        <action id="dev.cpsync.Refresh" class="dev.cpsync.RefreshListsAction"
+                text="Обновить списки" icon="AllIcons.Actions.Refresh"/>
+        <action id="dev.cpsync.Settings" class="dev.cpsync.OpenSettingsAction"
+                text="Настройки CP Sync…" icon="AllIcons.General.Settings"/>
+
+        <group id="dev.cpsync.Menu" text="CP Sync" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <reference ref="dev.cpsync.SyncNow"/>
+            <reference ref="dev.cpsync.Share"/>
+            <reference ref="dev.cpsync.OpenFromServer"/>
+            <reference ref="dev.cpsync.Unshare"/>
+            <separator/>
+            <reference ref="dev.cpsync.ConnectPhone"/>
+            <reference ref="dev.cpsync.OpenWebsite"/>
+            <separator/>
+            <reference ref="dev.cpsync.Login"/>
+            <reference ref="dev.cpsync.Logout"/>
+            <reference ref="dev.cpsync.Settings"/>
+        </group>
+    </actions>
+</idea-plugin>

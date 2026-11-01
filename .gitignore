@@ -1,0 +1,8 @@
+plugin/build/
+plugin/.gradle/
+plugin/.intellijPlatform/
+plugin/.kotlin/
+__pycache__/
+*.pyc
+.env
+cpsync-data/

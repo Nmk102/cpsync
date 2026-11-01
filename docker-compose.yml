@@ -1,0 +1,39 @@
+# CP Sync на сервере: сайт и API (app) + HTTPS (caddy). Настройки — в файле .env рядом.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    image: cpsync-app:latest
+    restart: unless-stopped
+    environment:
+      CPSYNC_PUBLIC_URL: https://${CPSYNC_DOMAIN}
+      CPSYNC_REGISTRATION: ${CPSYNC_REGISTRATION:-open}
+      CPSYNC_WORKERS: ${CPSYNC_WORKERS:-2}
+      CPSYNC_SANDBOX: docker
+      CPSYNC_HOST_DATA: /var/lib/cpsync
+    volumes:
+      - /var/lib/cpsync:/var/lib/cpsync
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      CPSYNC_DOMAIN: ${CPSYNC_DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:
