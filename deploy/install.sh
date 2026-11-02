@@ -18,12 +18,19 @@ say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 die() { printf '\n\033[1;31mОшибка: %s\033[0m\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || die "запустите от root: добавьте sudo перед bash"
-command -v curl >/dev/null || { apt-get update -qq && apt-get install -y -qq curl ca-certificates; }
+
+# Сразу после создания сервера Ubuntu сама обновляет пакеты и держит блокировку apt:
+# ждём её освобождения (до 15 минут), а не падаем.
+echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/99cpsync-lock
+export DEBIAN_FRONTEND=noninteractive
+retry() { local n=0; until "$@"; do n=$((n+1)); [ "$n" -ge 5 ] && return 1; echo "повтор через 20 с ($n/5)…"; sleep 20; done; }
+
+command -v curl >/dev/null || retry bash -c 'apt-get update -qq && apt-get install -y -qq curl ca-certificates'
 
 # --- 1. Docker
 if ! command -v docker >/dev/null 2>&1; then
   say "Устанавливаю Docker (1–2 минуты)…"
-  curl -fsSL https://get.docker.com | sh >/dev/null
+  retry bash -c 'curl -fsSL https://get.docker.com | sh >/dev/null' || die "не удалось установить Docker"
 fi
 systemctl enable --now docker >/dev/null 2>&1 || true
 docker compose version >/dev/null 2>&1 || die "не найден docker compose"
