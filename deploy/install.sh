@@ -57,7 +57,16 @@ curl -fsS --max-time 15 -H 'Accept: application/vnd.github.sha' \
   "https://api.github.com/repos/$REPO/commits/$BRANCH" > "$DIR/.commit" 2>/dev/null || true
 
 # --- 4. Адрес сайта
-DOMAIN="${CPSYNC_DOMAIN:-$SAVED_DOMAIN}"
+DOMAIN="${CPSYNC_DOMAIN:-}"
+if [ -z "$DOMAIN" ]; then
+  # адрес сайта можно сменить, положив его в deploy/domain.txt в репозитории (подхватится при обновлении)
+  OVR=$(curl -fsS --max-time 10 "https://raw.githubusercontent.com/$REPO/$BRANCH/deploy/domain.txt" 2>/dev/null | head -1 | tr -d ' \r\n' || true)
+  if printf '%s' "$OVR" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$'; then
+    DOMAIN="$OVR"
+  else
+    DOMAIN="$SAVED_DOMAIN"
+  fi
+fi
 if [ -z "$DOMAIN" ]; then
   IP=$(curl -fsS4 --max-time 10 https://api.ipify.org || curl -fsS4 --max-time 10 https://ifconfig.me || true)
   [ -n "$IP" ] || die "не удалось узнать внешний IP — укажите домен: CPSYNC_DOMAIN=..."
