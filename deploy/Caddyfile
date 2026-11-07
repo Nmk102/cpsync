@@ -1,0 +1,10 @@
+# HTTPS-сертификаты выпускаются автоматически (Let's Encrypt).
+{$GRADES_DOMAINS} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options DENY
+		X-Robots-Tag "noindex, nofollow"
+	}
+	reverse_proxy app:8080
+}

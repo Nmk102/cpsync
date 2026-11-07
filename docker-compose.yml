@@ -1,0 +1,33 @@
+# Сайт с оценками (app) + HTTPS (caddy). Настройки — в файле .env рядом.
+name: grades
+services:
+  app:
+    build: .
+    image: grades-app:latest
+    restart: unless-stopped
+    environment:
+      MB_SCHOOL: ${MB_SCHOOL:-theislandprivateschool}
+    volumes:
+      - /var/lib/grades:/data
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      GRADES_DOMAINS: ${GRADES_DOMAINS}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:

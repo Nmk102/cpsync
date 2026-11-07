@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16171a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>Оценки</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+<section id="login" class="login" hidden>
+  <form id="login-form" class="login-card" autocomplete="on">
+    <div class="logo">A<span>7</span></div>
+    <h1>Оценки ManageBac</h1>
+    <p class="muted">Все задания и оценки в одной таблице. Войдите тем же логином и паролем, что и в ManageBac.</p>
+    <label>Почта<input name="login" type="email" autocomplete="username" required></label>
+    <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
+    <button type="submit" class="btn primary">Войти</button>
+    <p id="login-error" class="error" hidden></p>
+    <p class="fine">Пароль хранится только на этом сервере: он нужен, чтобы сайт сам заходил в ManageBac и обновлял оценки.</p>
+  </form>
+</section>
+
+<section id="app" hidden>
+  <header class="top">
+    <div class="brand">
+      <h1>Оценки <span id="student"></span></h1>
+      <div class="sub"><span id="updated"></span><span id="sync-dot" class="sync" hidden>обновляю…</span></div>
+    </div>
+    <div class="top-actions">
+      <button id="refresh" class="btn" title="Обновить из ManageBac">↻ Обновить</button>
+      <a id="mb-link" class="btn ghost" target="_blank" rel="noopener">ManageBac ↗</a>
+      <button id="logout" class="btn ghost">Выйти</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <section id="subjects" class="subjects"></section>
+
+  <nav class="toolbar">
+    <div class="seg" id="view-seg">
+      <button data-view="list" class="on">Все задания</button>
+      <button data-view="subjects">По предметам</button>
+    </div>
+    <div class="filters">
+      <select id="f-subject"><option value="">Все предметы</option></select>
+      <div class="seg small" id="kind-seg">
+        <button data-kind="" class="on">Все</button>
+        <button data-kind="summative">Summative</button>
+        <button data-kind="formative">Formative</button>
+      </div>
+      <select id="f-term"></select>
+      <label class="check"><input type="checkbox" id="f-graded" checked> только с оценкой</label>
+      <input id="f-search" type="search" placeholder="Поиск">
+    </div>
+  </nav>
+
+  <main id="view"></main>
+  <p id="empty" class="empty" hidden></p>
+</section>
+
+<div id="loading" class="loading">Загрузка…</div>
+<script src="/app.js"></script>
+</body>
+</html>
