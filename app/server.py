@@ -273,6 +273,10 @@ class Handler(BaseHTTPRequestHandler):
         if STATIC.resolve() not in f.parents or not f.is_file():
             f = STATIC / "index.html"
         data = f.read_bytes()
+        if f.name == "index.html":  # превью ссылок в мессенджерах требует полный адрес картинки
+            host = (self.headers.get("Host") or "").split(",")[0].strip()
+            if host and all(c.isalnum() or c in ".-:" for c in host):
+                data = data.replace(b'content="/preview.png"', f'content="https://{host}/preview.png"'.encode())
         ctype = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
         if ctype.startswith("text/") or ctype in ("application/javascript", "application/json"):
             ctype += "; charset=utf-8"
