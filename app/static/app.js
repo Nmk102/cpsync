@@ -327,7 +327,11 @@ $("#refresh").addEventListener("click", async () => {
 });
 $("#logout").addEventListener("click", async () => {
   await api("/api/logout", { method: "POST" });
-  location.reload();
+  location.re// убрать service worker прежнего сайта, если он ещё остался
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
+}
+load();
 });
 
 $("#f-subject").addEventListener("change", (e) => { S.f.subject = e.target.value; render(); });
