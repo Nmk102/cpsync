@@ -21,6 +21,7 @@ STATIC = Path(__file__).parent / "static"
 STALE_MIN = int(os.environ.get("STALE_MINUTES", "20"))        # обновлять при открытии, если старше
 BACKGROUND_MIN = int(os.environ.get("BACKGROUND_MINUTES", "120"))  # фоновое обновление
 COOKIE = "grades_session"
+CONTENT = Path(__file__).parent / "content"
 
 DATA.mkdir(parents=True, exist_ok=True)
 (DATA / "cache").mkdir(exist_ok=True)
@@ -62,13 +63,17 @@ def cache_path(email: str) -> Path:
     return DATA / "cache" / (hashlib.sha256(email.encode()).hexdigest()[:24] + ".json")
 
 
+def mat_path(email: str) -> Path:
+    return DATA / "cache" / (hashlib.sha256(email.encode()).hexdigest()[:24] + ".mat.json")
+
+
 def _h(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
 # ---------------------------------------------------------------- синхронизация
 
-def sync_user(email: str):
+def sync_user(email: str, force: bool = False):
     lock = _sync_locks.setdefault(email, threading.Lock())
     if not lock.acquire(blocking=False):
         return
@@ -110,15 +115,24 @@ def sync_user(email: str):
         data.update({"fetched_at": stamp, "error": "", "error_kind": "", "graded_seen": first_seen})
         _write(path, data)
         print(f"[sync] {email}: {len(data['tasks'])} заданий", flush=True)
+
+        # материалы предметов (юниты, описания заданий, файлы) — отдельно, чтобы сбой не мешал оценкам
+        try:
+            mp = mat_path(email)
+            mat = mb.fetch_materials(data["classes"], data["tasks"], _read(mp, {}), force=force)
+            _write(mp, mat)
+            print(f"[sync] {email}: материалы {len(mat['tasks'])} заданий, {len(mat['units'])} юнитов", flush=True)
+        except Exception:
+            traceback.print_exc()
     finally:
         _syncing.discard(email)
         lock.release()
 
 
-def sync_async(email: str):
+def sync_async(email: str, force: bool = False):
     if email in _syncing:
         return
-    threading.Thread(target=sync_user, args=(email,), daemon=True).start()
+    threading.Thread(target=sync_user, args=(email, force), daemon=True).start()
 
 
 def background_loop():
@@ -139,13 +153,95 @@ def is_stale(cache: dict) -> bool:
     return age.total_seconds() > STALE_MIN * 60
 
 
+# ---------------------------------------------------------------- конспекты (app/content/<class_id>/*.md)
+
+def _front_matter(text: str) -> tuple[dict, str]:
+    meta = {}
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end > 0:
+            for line in text[3:end].strip().splitlines():
+                k, _, v = line.partition(":")
+                k, v = k.strip(), v.strip()
+                if not k:
+                    continue
+                if v.startswith("[") and v.endswith("]"):
+                    v = [x.strip().strip("'\"") for x in v[1:-1].split(",") if x.strip()]
+                meta[k] = v
+            text = text[end + 4:].lstrip("\n")
+    return meta, text
+
+
+def _as_list(v) -> list:
+    if not v:
+        return []
+    return [str(x) for x in v] if isinstance(v, list) else [str(v)]
+
+
+def notes_index() -> dict:
+    """{class_id: [ {slug, title, summary, units, tasks, order, kind} ]}"""
+    out: dict[str, list] = {}
+    if not CONTENT.is_dir():
+        return out
+    for d in sorted(CONTENT.iterdir()):
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob("*.md")):
+            meta, _ = _front_matter(f.read_text())
+            out.setdefault(d.name, []).append({
+                "slug": f.stem,
+                "title": meta.get("title", f.stem),
+                "summary": meta.get("summary", ""),
+                "kind": meta.get("kind", "notes"),
+                "units": _as_list(meta.get("units")),
+                "tasks": _as_list(meta.get("tasks")),
+                "order": int(meta.get("order", 100) or 100),
+            })
+        out.get(d.name, []).sort(key=lambda n: (n["order"], n["title"]))
+    return out
+
+
+NOTES = notes_index()
+
+
+def file_url(f: dict, mat: dict) -> str:
+    if f["url"].startswith("/attachments/"):
+        sg = mat.get("signed", {}).get(f.get("asset", ""))
+        return sg["url"] if sg else f"https://{SCHOOL}.managebac.com{f['url']}"
+    return f["url"]
+
+
+def subject_payload(cache: dict, mat: dict, cid: str) -> dict | None:
+    cls = next((c for c in cache.get("classes", []) if c["id"] == cid), None)
+    if not cls:
+        return None
+    cm = mat.get("classes", {}).get(cid, {})
+    units = [{**u, "info": mat.get("units", {}).get(u["id"], {}).get("info", {})} for u in cm.get("units", [])]
+    notes = NOTES.get(cid, [])
+    by_task: dict[str, list] = {}
+    for n in notes:
+        for t in n["tasks"]:
+            by_task.setdefault(t, []).append(n["slug"])
+    tasks = []
+    for t in cache.get("tasks", []):
+        if t["class_id"] != cid:
+            continue
+        d = mat.get("tasks", {}).get(f'{cid}:{t["id"]}', {})
+        tasks.append({**t, "description_html": d.get("description_html", ""),
+                      "files": [{**f, "url": file_url(f, mat)} for f in d.get("files", [])],
+                      "links": d.get("links", []), "unit_id": d.get("unit_id", ""),
+                      "unit_title": d.get("unit_title", ""), "notes": by_task.get(str(t["id"]), [])})
+    return {"class": cls, "units": units, "tasks": tasks, "files": cm.get("files", []), "notes": notes,
+            "materials_at": mat.get("fetched_at"), "school_url": f"https://{SCHOOL}.managebac.com"}
+
+
 # ---------------------------------------------------------------- HTTP
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "grades/1"
 
     def log_message(self, fmt, *args):
-        if "/api/" in (args[0] if args else ""):
+        if args and "/api/" in str(args[0]):
             super().log_message(fmt, *args)
 
     # --- helpers
@@ -204,6 +300,41 @@ class Handler(BaseHTTPRequestHandler):
             cache["syncing"] = email in _syncing
             cache["school_url"] = f"https://{SCHOOL}.managebac.com"
             return self._json(200, cache)
+        if path == "/api/subjects":
+            email = self._user()
+            if not email:
+                return self._json(401, {"error": "auth"})
+            cache, mat = _read(cache_path(email), {}), _read(mat_path(email), {})
+            out, now = [], datetime.now().isoformat(timespec="minutes")
+            for c in cache.get("classes", []):
+                cm = mat.get("classes", {}).get(c["id"], {})
+                ts = [t for t in cache.get("tasks", []) if t["class_id"] == c["id"]]
+                up = sorted((t for t in ts if (t.get("date") or "") >= now), key=lambda t: t["date"])
+                out.append({**c, "current_units": [u["title"] for u in cm.get("units", []) if u.get("current")],
+                            "tasks": len(ts), "notes": len(NOTES.get(c["id"], [])),
+                            "upcoming": [{"title": t["title"], "date": t["date"], "kind": t["kind"]} for t in up[:3]]})
+            return self._json(200, {"subjects": out, "materials_at": mat.get("fetched_at"),
+                                    "syncing": email in _syncing})
+        if path.startswith("/api/subject/"):
+            email = self._user()
+            if not email:
+                return self._json(401, {"error": "auth"})
+            p = subject_payload(_read(cache_path(email), {}), _read(mat_path(email), {}), path.rsplit("/", 1)[-1])
+            if p is not None:
+                p["syncing"] = email in _syncing
+            return self._json(200, p) if p else self._json(404, {"error": "not found"})
+        if path.startswith("/api/note/"):
+            if not self._user():
+                return self._json(401, {"error": "auth"})
+            parts = path.split("/")
+            if len(parts) != 5 or not parts[3].isdigit() or not parts[4] or \
+                    not all(c.isalnum() or c in "-_" for c in parts[4]):
+                return self._json(404, {"error": "not found"})
+            f = CONTENT / parts[3] / (parts[4] + ".md")
+            if not f.is_file():
+                return self._json(404, {"error": "not found"})
+            meta, body = _front_matter(f.read_text())
+            return self._json(200, {"meta": meta, "markdown": body})
         return self._static(path)
 
     def do_POST(self):
@@ -224,7 +355,7 @@ class Handler(BaseHTTPRequestHandler):
             email = self._user()
             if not email:
                 return self._json(401, {"error": "auth"})
-            sync_async(email)
+            sync_async(email, force=True)
             return self._json(200, {"ok": True})
         self._json(404, {"error": "not found"})
 

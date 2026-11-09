@@ -360,3 +360,132 @@ class ManageBac:
         if firsts:
             terms_out = max((r["terms"]["terms"] for _, r in firsts), key=len)
         return {"student": student, "classes": classes, "tasks": tasks, "terms": terms_out}
+
+    # ------------------------------------------------------------ материалы предметов
+
+    def resolve_attachment(self, path: str, session=None) -> str:
+        """/attachments/... → подписанная ссылка на CDN (действует около года)."""
+        s = session or self.s
+        r = s.get(self.base + path, allow_redirects=False, timeout=30)
+        loc = r.headers.get("Location", "")
+        if r.status_code in (301, 302, 303, 307, 308) and loc and "/login" not in loc:
+            return urljoin(self.base, loc)
+        return ""
+
+    def fetch_materials(self, classes: list, tasks: list, old: dict | None = None, force: bool = False) -> dict:
+        """Юниты, описания заданий, файлы. Тяжёлые части кэшируются в old."""
+        from materials import parse_files_page, parse_task_detail, parse_unit_popup, parse_units
+
+        old = old or {}
+        now = time.time()
+        cookies = self.s.cookies.copy()
+        mat = {
+            "classes": dict(old.get("classes", {})),
+            "tasks": dict(old.get("tasks", {})),
+            "units": dict(old.get("units", {})),
+            "signed": dict(old.get("signed", {})),
+            "classes_at": old.get("classes_at", 0),
+        }
+
+        def sess():
+            return self._new_session(cookies)
+
+        # 1) юниты и раздел Files — не чаще раза в 3 часа (или по кнопке «Обновить»)
+        if force or now - mat["classes_at"] > 3 * 3600:
+            def class_pages(c):
+                s = sess()
+                try:
+                    units = parse_units(self.get(f"/student/classes/{c['id']}/units", s))
+                except Exception:
+                    units = mat["classes"].get(c["id"], {}).get("units", [])
+                try:
+                    files = parse_files_page(self.get(f"/student/classes/{c['id']}/files", s))
+                except Exception:
+                    files = mat["classes"].get(c["id"], {}).get("files", [])
+                return c["id"], {"units": units, "files": files}
+            with ThreadPoolExecutor(max_workers=4) as ex:
+                for cid, v in ex.map(class_pages, classes):
+                    mat["classes"][cid] = v
+            mat["classes_at"] = now
+
+        # 2) описания заданий: новые, недавние/будущие — заново; старые раз в неделю
+        def need_task(t):
+            key = f'{t["class_id"]}:{t["id"]}'
+            d = mat["tasks"].get(key)
+            if not d:
+                return True
+            age = now - d.get("fetched", 0)
+            recent = True
+            if t.get("date"):
+                try:
+                    recent = datetime.fromisoformat(t["date"]).timestamp() > now - 21 * 86400
+                except ValueError:
+                    pass
+            return age > (600 if force else 3 * 3600 if recent else 7 * 86400)
+
+        todo = [t for t in tasks if need_task(t)]
+
+        def task_page(t):
+            s = sess()
+            url = t["url"].replace(self.base, "")
+            d = parse_task_detail(self.get(url, s), self.base)
+            d["fetched"] = now
+            return f'{t["class_id"]}:{t["id"]}', d
+
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            for res in ex.map(lambda t: _safe(task_page, t), todo):
+                if res:
+                    mat["tasks"][res[0]] = res[1]
+        live = {f'{t["class_id"]}:{t["id"]}' for t in tasks}
+        mat["tasks"] = {k: v for k, v in mat["tasks"].items() if k in live}
+
+        # 3) описания юнитов: текущие и те, к которым привязаны задания
+        want = set()
+        for cid, v in mat["classes"].items():
+            for u in v.get("units", []):
+                if u.get("current"):
+                    want.add((cid, u["id"]))
+        for key, d in mat["tasks"].items():
+            if d.get("unit_id"):
+                want.add((key.split(":")[0], d["unit_id"]))
+
+        def unit_popup(job):
+            cid, uid = job
+            info = parse_unit_popup(self.get(f"/student/classes/{cid}/units/{uid}/popup", sess()))
+            return uid, {"info": info, "fetched": now}
+
+        jobs = [j for j in want if now - mat["units"].get(j[1], {}).get("fetched", 0) > (86400 if force else 7 * 86400)]
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            for res in ex.map(lambda j: _safe(unit_popup, j), jobs):
+                if res:
+                    mat["units"][res[0]] = res[1]
+
+        # 4) файлы-вложения: превращаем /attachments/... в прямые ссылки
+        pending = []
+        for d in mat["tasks"].values():
+            for f in d.get("files", []):
+                if f["url"].startswith("/attachments/") and f.get("asset"):
+                    sg = mat["signed"].get(f["asset"])
+                    if not sg or now - sg.get("at", 0) > 150 * 86400:
+                        pending.append((f["asset"], f["url"]))
+        pending = list(dict(pending).items())
+
+        def resolve(job):
+            asset, path = job
+            url = self.resolve_attachment(path, sess())
+            return (asset, {"url": url, "at": now}) if url else None
+
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            for res in ex.map(lambda j: _safe(resolve, j), pending):
+                if res:
+                    mat["signed"][res[0]] = res[1]
+        mat["fetched_at"] = now
+        return mat
+
+
+def _safe(fn, arg):
+    try:
+        return fn(arg)
+    except Exception as e:  # одна страница не должна ломать всё обновление
+        print(f"[materials] {getattr(fn, '__name__', fn)} {arg!r:.80}: {e}", flush=True)
+        return None
