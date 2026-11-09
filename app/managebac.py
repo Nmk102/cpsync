@@ -107,6 +107,7 @@ def parse_tasks(html: str, class_info: dict, base_url: str, today: datetime | No
     terms = parse_terms(soup)
     year_label = next((t["year_label"] for t in terms["terms"] if t["id"] == terms["selected"]), "")
     term_name = next((t["name"] for t in terms["terms"] if t["id"] == terms["selected"]), "")
+    term_name = term_name[:1].upper() + term_name[1:].lower()   # «First Term» и «First term» — одно и то же
 
     tasks = []
     for row in soup.select(".short-assignment"):

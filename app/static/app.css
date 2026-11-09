@@ -64,6 +64,7 @@ a { color: inherit; }
 .subj .crit { display: flex; gap: 4px; flex-wrap: wrap; }
 .subj .none { color: var(--muted); font-size: 12px; }
 .subj .pts { font-size: 12px; color: var(--muted); }
+.subj .missing-n { font-size: 12px; color: var(--g1); font-weight: 600; }
 
 /* --- панель фильтров */
 .toolbar { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;
@@ -89,6 +90,7 @@ a { color: inherit; }
 .lv2 { background: var(--g2bg); color: var(--g2); }
 .lv1 { background: var(--g1bg); color: var(--g1); }
 .status { font-size: 12px; color: var(--muted); }
+.status.missing { color: var(--g1); background: var(--g1bg); padding: 2px 7px; border-radius: 6px; font-weight: 600; }
 .grades { display: flex; gap: 4px; flex-wrap: wrap; }
 
 /* --- таблица */

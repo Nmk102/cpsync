@@ -52,7 +52,10 @@ function chip(label, score, max, title = "") {
 
 function gradeHtml(t) {
   const g = t.grade || {};
-  if (g.type !== "graded") return `<span class="status">${esc(g.text || "—")}</span>`;
+  if (g.type !== "graded") {
+    const missing = /not submitted/i.test(g.text || "");
+    return `<span class="status${missing ? " missing" : ""}">${esc(missing ? "Не сдано" : g.text || "—")}</span>`;
+  }
   const out = [];
   for (const c of g.criteria || []) {
     if (c.score == null) out.push(`<span class="chip" title="${esc(c.name)}"><span class="l">${esc(c.letter)}</span>—</span>`);
@@ -80,7 +83,7 @@ function filtered({ ignoreSubject = false } = {}) {
   return (S.data.tasks || []).filter((t) => {
     if (!ignoreSubject && S.f.subject && t.class_id !== S.f.subject) return false;
     if (S.f.kind && t.kind !== S.f.kind) return false;
-    if (S.f.term && t.term !== S.f.term) return false;
+    if (S.f.term && (t.term || "").toLowerCase() !== S.f.term.toLowerCase()) return false;
     if (S.f.graded && t.grade?.type !== "graded") return false;
     if (q && !(`${t.title} ${t.subject} ${t.comment}`.toLowerCase().includes(q))) return false;
     return true;
@@ -133,7 +136,7 @@ function renderFilters() {
   sel.innerHTML = `<option value="">Все предметы</option>` + classes.map((c) => `<option value="${esc(c.id)}">${esc(c.short)}</option>`).join("");
   sel.value = S.f.subject;
 
-  const terms = [...new Set((d.tasks || []).map((t) => t.term).filter(Boolean))];
+  const terms = [...new Map((d.tasks || []).filter((t) => t.term).map((t) => [t.term.toLowerCase(), t.term])).values()];
   const tsel = $("#f-term");
   tsel.hidden = terms.length < 2;
   tsel.innerHTML = `<option value="">Весь год</option>` + terms.map((t) => `<option>${esc(t)}</option>`).join("");
@@ -166,8 +169,10 @@ function renderSubjects() {
   const all = filtered({ ignoreSubject: true });
   const by = new Map();
   for (const t of all) { if (!by.has(t.class_id)) by.set(t.class_id, []); by.get(t.class_id).push(t); }
-  const cards = (d.classes || []).filter((c) => by.has(c.id)).map((c) => {
-    const ts = by.get(c.id);
+  const nowIso = new Date().toISOString().slice(0, 16);
+  const missingOf = (cid) => (d.tasks || []).filter((t) => t.class_id === cid && /not submitted/i.test(t.grade?.text || "") && (t.date || "") < nowIso).length;
+  const cards = (d.classes || []).filter((c) => by.has(c.id) || missingOf(c.id)).map((c) => {
+    const ts = by.get(c.id) || [];
     const s = subjectSummary(ts);
     const letters = Object.keys(s.crit).sort();
     const critHtml = letters.length ? `<div class="crit">${letters.map((l) => {
@@ -176,9 +181,11 @@ function renderSubjects() {
     }).join("")}</div>` : "";
     const ptsHtml = s.ptsPct != null ? `<div class="pts">баллы: <b>${Math.round(s.ptsPct * 100)}%</b> в среднем (${s.ptsN})</div>` : "";
     const newN = ts.filter(isNew).length;
+    const missing = missingOf(c.id);
     return `<button class="subj${S.f.subject === c.id ? " on" : ""}" data-id="${esc(c.id)}">
       <div class="name"><span>${newN ? '<span class="newdot" title="Новые оценки"></span>' : ""}${esc(c.short)}</span><span class="count">${s.graded.length} оц.</span></div>
       ${critHtml}${ptsHtml}${!critHtml && !ptsHtml ? '<div class="none">пока без оценок</div>' : ""}
+      ${missing ? `<div class="missing-n" title="Срок прошёл, а работа не сдана">не сдано: ${missing}</div>` : ""}
     </button>`;
   });
   box.innerHTML = cards.join("");
