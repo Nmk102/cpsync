@@ -269,7 +269,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Set-Cookie", cookie)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if not getattr(self, "_head_only", False):
+            self.wfile.write(body)
 
     def _body(self) -> dict:
         n = int(self.headers.get("Content-Length") or 0)
@@ -354,6 +355,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"meta": meta, "markdown": body})
         return self._static(path)
 
+    def do_HEAD(self):
+        # как GET, но без тела (нужно некоторым сервисам предпросмотра ссылок)
+        self._head_only = True
+        try:
+            self.do_GET()
+        finally:
+            self._head_only = False
+
     def do_POST(self):
         path = self.path.split("?")[0]
         if self.headers.get("X-Requested-With") != "grades":
@@ -435,7 +444,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        self.wfile.write(data)
+        if not getattr(self, "_head_only", False):
+            self.wfile.write(data)
 
 
 def main():
