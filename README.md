@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/Nmk102/cpsync/main/deploy/install.s
 ```
 
 Скрипт ставит Docker, удаляет CP Sync (если был; его данные архивируются в `/root/cpsync-backup-*.tar.gz`),
-запускает сайт с HTTPS и включает автообновление из GitHub раз в час. Адрес: `https://<IP-через-дефисы>.sslip.io`.
+запускает сайт с HTTPS и включает автообновление из GitHub (проверка раз в 10 минут). Адрес: `https://<IP-через-дефисы>.sslip.io`.
 
 | Что | Как |
 |---|---|

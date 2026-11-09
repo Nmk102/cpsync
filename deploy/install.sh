@@ -94,7 +94,7 @@ cd "$DIR"
 docker compose up -d --build --remove-orphans
 docker image prune -f >/dev/null 2>&1 || true
 
-# --- 7. Автообновление раз в час из GitHub
+# --- 7. Автообновление из GitHub (проверка раз в 10 минут)
 cat > /usr/local/bin/grades-update <<UPD
 #!/usr/bin/env bash
 NEW=\$(curl -fsS --max-time 15 -H 'Accept: application/vnd.github.sha' "https://api.github.com/repos/$REPO/commits/$BRANCH" || true)
@@ -112,10 +112,10 @@ ExecStart=/usr/local/bin/grades-update
 UNIT
 cat > /etc/systemd/system/grades-update.timer <<UNIT
 [Unit]
-Description=Grades site auto-update (hourly)
+Description=Grades site auto-update (every 10 min)
 [Timer]
 OnBootSec=10min
-OnUnitActiveSec=1h
+OnUnitActiveSec=10min
 [Install]
 WantedBy=timers.target
 UNIT
