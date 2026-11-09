@@ -108,7 +108,7 @@ function fmtDate(iso) {
 
 function renderHeader() {
   const d = S.data;
-  $("#student").textContent = d.student ? `· ${d.student}` : "";
+  $("#student").textContent = d.student || "";
   $("#mb-link").href = (d.school_url || "") + "/student";
   if (d.fetched_at) {
     const mins = Math.round((Date.now() - new Date(d.fetched_at).getTime()) / 60000);
@@ -289,10 +289,12 @@ async function load() {
   $("#loading").hidden = true;
   if (status === 401) return showLogin();
   if (status !== 200) { setTimeout(load, 5000); return; }
+  const first = !S.data;
   S.data = body;
   $("#login").hidden = true;
   $("#app").hidden = false;
   render();
+  if (first) route();
   clearTimeout(S.poll);
   if (body.syncing) S.poll = setTimeout(load, 2500);
   else if (body.fetched_at) store.set("lastVisit", body.fetched_at);
@@ -327,11 +329,7 @@ $("#refresh").addEventListener("click", async () => {
 });
 $("#logout").addEventListener("click", async () => {
   await api("/api/logout", { method: "POST" });
-  location.re// убрать service worker прежнего сайта, если он ещё остался
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
-}
-load();
+  location.reload();
 });
 
 $("#f-subject").addEventListener("change", (e) => { S.f.subject = e.target.value; render(); });
@@ -366,5 +364,24 @@ $("#view").addEventListener("click", (e) => {
   }
 });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && S.data) load(); });
+
+// ------------------------------------------------------------ вкладки: оценки / предметы
+
+function route() {
+  const h = location.hash || "#/";
+  const study = h.startsWith("#/subjects") || h.startsWith("#/s/");
+  $("#page-grades").hidden = study;
+  $("#page-study").hidden = !study;
+  for (const a of $("#tabs").children) a.classList.toggle("on", a.dataset.tab === (study ? "study" : "grades"));
+  if (study && window.Study) window.Study.show(h);
+  if (!study) document.title = "Оценки ManageBac";
+}
+window.addEventListener("hashchange", route);
+window.App = { api, esc, gradeHtml, fmtDate, chip, level, store, reload: () => load() };
+
+// убрать service worker прежнего сайта, если он ещё остался
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
+}
 
 load();

@@ -31,6 +31,8 @@ POPUP = """<div>Unit</div><div>Back to the beginning</div><div>Last updated on J
 
 def test_all():
     assert asset_id_from_attachment(ATT) == "196391350"
+    old = "/attachments/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OXRZVzVoWjJWaVlXTXZRWE56WlhRdk1UazFNVE0xTWpnMlAyVjRjR2x5WlhOZmFXNEdPZ1pGVkE9PSIsImV4cCI6bnVsbCwicHVyIjoiZGVmYXVsdCJ9fQ==--29f2d90c063cee88f78b569b9a6ef41e890a51de"
+    assert asset_id_from_attachment(old) == "195135286", asset_id_from_attachment(old)
     d = parse_task_detail(TASK, BASE)
     assert d["unit_id"] == "2103923"
     names = [f["name"] for f in d["files"]]

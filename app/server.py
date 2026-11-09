@@ -217,6 +217,21 @@ def subject_payload(cache: dict, mat: dict, cid: str) -> dict | None:
         return None
     cm = mat.get("classes", {}).get(cid, {})
     units = [{**u, "info": mat.get("units", {}).get(u["id"], {}).get("info", {})} for u in cm.get("units", [])]
+    # юниты, к которым привязаны задания (могут отсутствовать в списке юнитов класса) + дата последнего задания
+    by_id = {u["id"]: u for u in units}
+    for t in cache.get("tasks", []):
+        if t["class_id"] != cid:
+            continue
+        d = mat.get("tasks", {}).get(f'{cid}:{t["id"]}', {})
+        uid = d.get("unit_id")
+        if not uid:
+            continue
+        if uid not in by_id:
+            by_id[uid] = {"id": uid, "title": d.get("unit_title", ""), "start": "", "duration": "", "current": False,
+                          "info": mat.get("units", {}).get(uid, {}).get("info", {}), "extra": True}
+            units.append(by_id[uid])
+        if t.get("date") and t["date"] > by_id[uid].get("last_task", ""):
+            by_id[uid]["last_task"] = t["date"]
     notes = NOTES.get(cid, [])
     by_task: dict[str, list] = {}
     for n in notes:
@@ -310,7 +325,9 @@ class Handler(BaseHTTPRequestHandler):
                 cm = mat.get("classes", {}).get(c["id"], {})
                 ts = [t for t in cache.get("tasks", []) if t["class_id"] == c["id"]]
                 up = sorted((t for t in ts if (t.get("date") or "") >= now), key=lambda t: t["date"])
-                out.append({**c, "current_units": [u["title"] for u in cm.get("units", []) if u.get("current")],
+                sp = subject_payload(cache, mat, c["id"]) or {"units": []}
+                out.append({**c, "units": [{k: u.get(k) for k in ("id", "title", "start", "current", "last_task")}
+                                           for u in sp["units"]],
                             "tasks": len(ts), "notes": len(NOTES.get(c["id"], [])),
                             "upcoming": [{"title": t["title"], "date": t["date"], "kind": t["kind"]} for t in up[:3]]})
             return self._json(200, {"subjects": out, "materials_at": mat.get("fetched_at"),

@@ -94,7 +94,19 @@ def asset_id_from_attachment(href: str) -> str | None:
     except Exception:
         return None
     m2 = re.search(r"Asset/(\d+)", txt)
-    return m2.group(1) if m2 else None
+    if m2:
+        return m2.group(1)
+    # старый формат: {"_rails":{"message":"<base64 Marshal>"}} — id внутри второго слоя base64
+    m3 = re.search(r'"message"\s*:\s*"([A-Za-z0-9+/=_-]+)"', txt)
+    if m3:
+        inner = m3.group(1)
+        try:
+            raw2 = base64.b64decode(inner + "=" * (-len(inner) % 4)).decode("latin-1")
+        except Exception:
+            return None
+        m4 = re.search(r"Asset/(\d+)", raw2)
+        return m4.group(1) if m4 else None
+    return None
 
 
 def link_kind(url: str, name: str = "") -> str:
