@@ -64,6 +64,7 @@ a.pill:hover { background: var(--line); }
 .st-qs summary { cursor: pointer; font-size: 14px; color: var(--muted); }
 .st-qs ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
 .qk { font-size: 11px; padding: 1px 6px; border-radius: 5px; background: var(--soft); color: var(--muted); margin-right: 4px; }
+.st-extra { font-size: 13px; color: var(--muted); margin: 4px 0 0; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .st-unit-notes { display: grid; gap: 8px; margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
 
 .st-notes { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin-bottom: 8px; }

@@ -142,17 +142,24 @@
     const yStart = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
     return new Date(mon >= 7 ? yStart : yStart + 1, mon, 1 + (m[1] - 1) * 7);
   }
-  function nowUnits(units) {
+  function recentTaskUnits(units) {
+    const now = Date.now(), W = 7 * 864e5;
+    return units.filter((u) => u.last_task && new Date(u.last_task).getTime() > now - 3 * W)
+      .sort((a, b) => b.last_task.localeCompare(a.last_task));
+  }
+  const JUNK = /^(example|test|template|copy of .*)$/i;   // учебные заготовки учителей
+  function nowUnits(allUnits) {
+    const units = allUnits.filter((u) => !JUNK.test((u.title || "").trim()));
     const now = Date.now(), W = 7 * 864e5;
     const fresh = units.filter((u) => {
       if (!u.current) return false;
       const s = unitStart(u);
       return s && s.getTime() > now - 6 * W && s.getTime() < now + W;
     });
-    if (fresh.length) return fresh;
-    const byTasks = units.filter((u) => u.last_task && new Date(u.last_task).getTime() > now - 3 * W)
-      .sort((a, b) => b.last_task.localeCompare(a.last_task));
-    if (byTasks.length) return byTasks;
+    if (fresh.length >= 1 && fresh.length <= 4) return fresh;   // план ManageBac правдоподобен
+    const byTasks = recentTaskUnits(units);
+    if (byTasks.length) return byTasks;                          // иначе — по свежим заданиям
+    if (fresh.length) return fresh.slice(0, 3);
     return units.filter((u) => u.current).slice(0, 3);
   }
 
@@ -176,6 +183,7 @@
     const c = d.class;
     setTitle(c.short);
     const cur = nowUnits(d.units);
+    const extraUnits = recentTaskUnits(d.units).filter((u) => !cur.includes(u));
     const notes = d.notes || [];
     const tasks = [...d.tasks].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     const upcoming = tasks.filter(isFuture).reverse();
@@ -193,7 +201,8 @@
       ${!d.materials_at ? `<div class="st-note">Материалы из ManageBac ещё собираются — обновите страницу через минуту.</div>` : ""}
       <div class="st-layout">
         <div class="st-main">
-          ${cur.length ? `<section><h2>Сейчас проходим</h2>${cur.map((u) => unitBlock(cid, u, notes)).join("")}</section>` : ""}
+          ${cur.length ? `<section><h2>Сейчас проходим</h2>${cur.map((u) => unitBlock(cid, u, notes)).join("")}
+            ${extraUnits.length ? `<p class="st-extra">Свежие задания в ManageBac привязаны также к: ${extraUnits.map((u) => `<span class="pill soft">${esc(u.title)}</span>`).join(" ")}</p>` : ""}</section>` : ""}
           ${otherNotes.length ? `<section><h2>Конспекты и разборы</h2>${order.filter((k) => groups[k]).map((k) =>
             `<div class="st-notes">${groups[k].map((n) => noteCard(cid, n)).join("")}</div>`).join("")}
             ${Object.keys(groups).filter((k) => !order.includes(k)).map((k) => `<div class="st-notes">${groups[k].map((n) => noteCard(cid, n)).join("")}</div>`).join("")}</section>` : ""}
