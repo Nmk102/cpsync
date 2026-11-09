@@ -471,7 +471,7 @@
           const x = a + ((b - a) * i) / n;
           let y; try { y = f.fn(...args(x)); } catch { y = NaN; }
           const ok = isFinite(y) && y > y0 - (y1 - y0) * 3 && y < y1 + (y1 - y0) * 3;
-          if (ok && prev !== null && Math.abs(y - prev) > (y1 - y0) * 1.5) pen = false;
+          if (ok && prev !== null && Math.abs(y - prev) > (y1 - y0) * 0.5) pen = false;
           if (ok) { d += `${pen ? "L" : "M"}${X(x).toFixed(1)},${Y(y).toFixed(1)}`; pen = true; prev = y; } else { pen = false; prev = null; }
         }
         parts.push(`<path class="fn c${f.c}${f.dash ? " dash" : ""}" d="${d}"/>`);
