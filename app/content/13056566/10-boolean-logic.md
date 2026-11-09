@@ -30,7 +30,7 @@ summary: Операции и таблицы истинности, законы �
 
 **Порядок действий:** ¬ → ∧ → ∨ и ⊕ → → → ≡. Скобки меняют порядок, как в арифметике.
 
-<svg class="fig" viewBox="0 0 700 170" width="700">
+<svg class="fig" viewBox="0 0 780 170" width="780">
   <path class="l f3" d="M60 40 L90.0 40 A25.0 25.0 0 0 1 90.0 90 L60 90 Z"/>
   <line class="l" x1="30.0" y1="55.0" x2="60.0" y2="55.0"/>
   <line class="l" x1="30.0" y1="75.0" x2="60.0" y2="75.0"/>
@@ -39,30 +39,30 @@ summary: Операции и таблицы истинности, законы �
   <text class="i" x="26.0" y="91.0">B</text>
   <text class="i" x="139.0" y="70.0">A·B</text>
   <text class="s" x="90.0" y="140.0" text-anchor="middle">AND (И)</text>
-  <path class="l f3" d="M232 40 Q265.0 40 292 65.0 Q265.0 90 232 90 Q247.0 65.0 232 40 Z"/>
-  <line class="l" x1="202.0" y1="55.0" x2="238.0" y2="55.0"/>
-  <line class="l" x1="202.0" y1="75.0" x2="238.0" y2="75.0"/>
-  <line class="l" x1="292.0" y1="65.0" x2="314.0" y2="65.0"/>
-  <text class="i" x="198.0" y="51.0">A</text>
-  <text class="i" x="198.0" y="91.0">B</text>
-  <text class="i" x="316.0" y="70.0">A+B</text>
-  <text class="s" x="262.0" y="140.0" text-anchor="middle">OR (ИЛИ)</text>
-  <path class="l f3" d="M404 40 Q437.0 40 464 65.0 Q437.0 90 404 90 Q419.0 65.0 404 40 Z"/>
-  <path class="l" d="M396 40 Q411.0 65.0 396 90"/>
-  <line class="l" x1="374.0" y1="55.0" x2="410.0" y2="55.0"/>
-  <line class="l" x1="374.0" y1="75.0" x2="410.0" y2="75.0"/>
-  <line class="l" x1="464.0" y1="65.0" x2="486.0" y2="65.0"/>
-  <text class="i" x="370.0" y="51.0">A</text>
-  <text class="i" x="370.0" y="91.0">B</text>
-  <text class="i" x="488.0" y="70.0">A⊕B</text>
-  <text class="s" x="434.0" y="140.0" text-anchor="middle">XOR</text>
-  <polygon class="l f3" points="576.0,45.0 622.0,65.0 576.0,85.0"/>
-  <circle class="l fb" cx="627.0" cy="65.0" r="5.0"/>
-  <line class="l" x1="546.0" y1="65.0" x2="576.0" y2="65.0"/>
-  <line class="l" x1="632.0" y1="65.0" x2="652.0" y2="65.0"/>
-  <text class="i" x="542.0" y="59.0">A</text>
-  <text class="i" x="654.0" y="70.0">¬A</text>
-  <text class="s" x="606.0" y="140.0" text-anchor="middle">NOT (НЕ)</text>
+  <path class="l f3" d="M250 40 Q283.0 40 310 65.0 Q283.0 90 250 90 Q265.0 65.0 250 40 Z"/>
+  <line class="l" x1="220.0" y1="55.0" x2="256.0" y2="55.0"/>
+  <line class="l" x1="220.0" y1="75.0" x2="256.0" y2="75.0"/>
+  <line class="l" x1="310.0" y1="65.0" x2="332.0" y2="65.0"/>
+  <text class="i" x="216.0" y="51.0">A</text>
+  <text class="i" x="216.0" y="91.0">B</text>
+  <text class="i" x="334.0" y="70.0">A+B</text>
+  <text class="s" x="280.0" y="140.0" text-anchor="middle">OR (ИЛИ)</text>
+  <path class="l f3" d="M440 40 Q473.0 40 500 65.0 Q473.0 90 440 90 Q455.0 65.0 440 40 Z"/>
+  <path class="l" d="M432 40 Q447.0 65.0 432 90"/>
+  <line class="l" x1="410.0" y1="55.0" x2="446.0" y2="55.0"/>
+  <line class="l" x1="410.0" y1="75.0" x2="446.0" y2="75.0"/>
+  <line class="l" x1="500.0" y1="65.0" x2="522.0" y2="65.0"/>
+  <text class="i" x="406.0" y="51.0">A</text>
+  <text class="i" x="406.0" y="91.0">B</text>
+  <text class="i" x="524.0" y="70.0">A⊕B</text>
+  <text class="s" x="470.0" y="140.0" text-anchor="middle">XOR</text>
+  <polygon class="l f3" points="630.0,45.0 676.0,65.0 630.0,85.0"/>
+  <circle class="l fb" cx="681.0" cy="65.0" r="5.0"/>
+  <line class="l" x1="600.0" y1="65.0" x2="630.0" y2="65.0"/>
+  <line class="l" x1="686.0" y1="65.0" x2="706.0" y2="65.0"/>
+  <text class="i" x="596.0" y="59.0">A</text>
+  <text class="i" x="708.0" y="70.0">¬A</text>
+  <text class="s" x="660.0" y="140.0" text-anchor="middle">NOT (НЕ)</text>
 </svg>
 
 ## 2. Законы алгебры логики
