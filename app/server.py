@@ -167,6 +167,8 @@ def _front_matter(text: str) -> tuple[dict, str]:
                     continue
                 if v.startswith("[") and v.endswith("]"):
                     v = [x.strip().strip("'\"") for x in v[1:-1].split(",") if x.strip()]
+                elif len(v) >= 2 and v[0] == v[-1] and v[0] in "'\"":
+                    v = v[1:-1]
                 meta[k] = v
             text = text[end + 4:].lstrip("\n")
     return meta, text
