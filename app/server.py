@@ -197,7 +197,7 @@ def notes_index() -> dict:
                 "kind": meta.get("kind", "notes"),
                 "units": _as_list(meta.get("units")),
                 "tasks": _as_list(meta.get("tasks")),
-                "order": int(meta.get("order", 100) or 100),
+                "order": float(meta.get("order", 100) or 100),
             })
         out.get(d.name, []).sort(key=lambda n: (n["order"], n["title"]))
     return out
