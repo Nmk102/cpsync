@@ -261,3 +261,12 @@ details.box.answer > summary { color: var(--c1); }
   details.box { break-inside: avoid; }
   details.box:not([open]) > .box-body { display: block; }
 }
+
+/* новые файлы без разбора */
+.tabs a { position: relative; }
+.tab-dot { position: absolute; top: 0; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--new, #e0503a);
+  color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+.st-pending { font-size: 12.5px; color: var(--g1); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--new, #e0503a); flex: none; }
+.tag.nonote { background: var(--g1bg); color: var(--g1); display: inline-flex; align-items: center; gap: 4px; }
+.st-note.warn { background: var(--g1bg); }

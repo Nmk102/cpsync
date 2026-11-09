@@ -9,7 +9,7 @@ import secrets
 import threading
 import time
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -213,6 +213,12 @@ def file_url(f: dict, mat: dict) -> str:
     return f["url"]
 
 
+def pending_notes(tasks: list) -> list:
+    """Свежие задания с файлами учителя, к которым ещё нет конспекта/разбора."""
+    since = (datetime.now() - timedelta(days=14)).isoformat(timespec="minutes")
+    return [t for t in tasks if t.get("files") and not t.get("notes") and (t.get("date") or "") >= since]
+
+
 def subject_payload(cache: dict, mat: dict, cid: str) -> dict | None:
     cls = next((c for c in cache.get("classes", []) if c["id"] == cid), None)
     if not cls:
@@ -248,6 +254,9 @@ def subject_payload(cache: dict, mat: dict, cid: str) -> dict | None:
                       "files": [{**f, "url": file_url(f, mat)} for f in d.get("files", [])],
                       "links": d.get("links", []), "unit_id": d.get("unit_id", ""),
                       "unit_title": d.get("unit_title", ""), "notes": by_task.get(str(t["id"]), [])})
+    pend = {t["id"] for t in pending_notes(tasks)}
+    for t in tasks:
+        t["needs_notes"] = t["id"] in pend
     return {"class": cls, "units": units, "tasks": tasks, "files": cm.get("files", []), "notes": notes,
             "materials_at": mat.get("fetched_at"), "school_url": f"https://{SCHOOL}.managebac.com"}
 
@@ -328,10 +337,12 @@ class Handler(BaseHTTPRequestHandler):
                 cm = mat.get("classes", {}).get(c["id"], {})
                 ts = [t for t in cache.get("tasks", []) if t["class_id"] == c["id"]]
                 up = sorted((t for t in ts if (t.get("date") or "") >= now), key=lambda t: t["date"])
-                sp = subject_payload(cache, mat, c["id"]) or {"units": []}
+                sp = subject_payload(cache, mat, c["id"]) or {"units": [], "tasks": []}
+                pending = pending_notes(sp["tasks"])
                 out.append({**c, "units": [{k: u.get(k) for k in ("id", "title", "start", "current", "last_task")}
                                            for u in sp["units"]],
                             "tasks": len(ts), "notes": len(NOTES.get(c["id"], [])),
+                            "pending": [{"id": t["id"], "title": t["title"], "date": t["date"]} for t in pending],
                             "upcoming": [{"title": t["title"], "date": t["date"], "kind": t["kind"]} for t in up[:3]]})
             return self._json(200, {"subjects": out, "materials_at": mat.get("fetched_at"),
                                     "syncing": email in _syncing})

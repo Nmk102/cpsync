@@ -77,6 +77,7 @@
       const next = s.upcoming[0];
       return `<a class="st-card" href="#/s/${esc(s.id)}">
         <div class="st-card-top"><h3>${esc(s.short)}</h3>${s.notes ? `<span class="st-badge">${s.notes} ${plural(s.notes, "материал", "материала", "материалов")}</span>` : ""}</div>
+        ${(s.pending || []).length ? `<div class="st-pending" title="${esc(s.pending.map((p) => p.title).join("\n"))}"><span class="dot"></span>${s.pending.length} ${plural(s.pending.length, "новое задание", "новых задания", "новых заданий")} с файлами без разбора</div>` : ""}
         ${nowUnits(s.units || []).length ? `<div class="st-now"><span class="st-label">Сейчас</span>${nowUnits(s.units).slice(0, 4).map((u) => `<span>${esc(u.title)}</span>`).join("")}</div>` : ""}
         ${next ? `<div class="st-next ${next.kind === "summative" ? "sum" : ""}"><b>${esc(day(next.date))}</b> ${esc(next.title)} <span class="muted">${esc(daysLeft(next.date))}</span></div>` : ""}
       </a>`;
@@ -85,10 +86,26 @@
     root.innerHTML = `
       <div class="st-head"><h1>Предметы</h1>
         <p class="muted">Что сейчас проходите, задания с файлами из ManageBac, конспекты и разборы.</p></div>
+      ${subs.some((x) => (x.pending || []).length) ? `<div class="st-note warn"><b>Есть новые файлы без разбора</b> (отмечены красной точкой). Напишите Claude «обнови конспекты» — он заберёт файлы и напишет разборы.</div>` : ""}
       ${waiting ? `<div class="st-note">Сервер собирает материалы из ManageBac (темы, описания заданий, файлы). Это занимает минуту-две — страница обновится сама.</div>` : ""}
       <div class="st-grid">${cards.join("") || '<p class="st-empty">Пока пусто.</p>'}</div>`;
+    setBadge(subs);
     clearTimeout(pollTimer);
     if (waiting || d.syncing) pollTimer = setTimeout(() => { if (location.hash.startsWith("#/subjects")) showSubjects(); }, 5000);
+  }
+
+  function setBadge(subs) {
+    const n = subs.reduce((k, x) => k + (x.pending || []).length, 0);
+    const tab = document.querySelector('#tabs [data-tab="study"]');
+    if (!tab) return;
+    let b = tab.querySelector(".tab-dot");
+    if (!n) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement("span"); b.className = "tab-dot"; tab.appendChild(b); }
+    b.textContent = n;
+    b.title = "Новые задания с файлами без разбора";
+  }
+  async function refreshBadge() {
+    try { const { status, body } = await api("/api/subjects"); if (status === 200) setBadge(body.subjects || []); } catch {}
   }
 
   function plural(n, a, b, c) {
@@ -172,6 +189,7 @@
         <span class="st-task-meta">${sum ? '<span class="tag summative">Summative</span>' : t.kind === "formative" ? '<span class="tag formative">Formative</span>' : ""}
         ${files ? `<span class="tag">${files} ${plural(files, "файл", "файла", "файлов")}</span>` : ""}
         ${t.notes && t.notes.length ? '<span class="tag sol">есть разбор</span>' : ""}
+        ${t.needs_notes ? '<span class="tag nonote"><span class="dot"></span>нет разбора</span>' : ""}
         ${isFuture(t) ? `<span class="tag due">${esc(daysLeft(t.date))}</span>` : ""}</span></span>
       <span class="st-task-grade">${t.grade && t.grade.type === "graded" ? gradeHtml(t) : ""}</span>
     </a>`;
@@ -466,5 +484,5 @@
     return String(v);
   }
 
-  window.Study = { show, renderMarkdown, enhance };
+  window.Study = { show, renderMarkdown, enhance, refreshBadge };
 })();

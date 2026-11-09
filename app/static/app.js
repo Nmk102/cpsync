@@ -301,7 +301,7 @@ async function load() {
   $("#login").hidden = true;
   $("#app").hidden = false;
   render();
-  if (first) route();
+  if (first) { route(); if (window.Study) window.Study.refreshBadge(); }
   clearTimeout(S.poll);
   if (body.syncing) S.poll = setTimeout(load, 2500);
   else if (body.fetched_at) store.set("lastVisit", body.fetched_at);
