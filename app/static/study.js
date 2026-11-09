@@ -404,7 +404,11 @@
     const params = cfg.params || {};
     const names = ["x", ...Object.keys(params)];
     const vals = Object.fromEntries(Object.entries(params).map(([k, p]) => [k, p.value ?? p.min ?? 0]));
-    const fns = (cfg.fns || []).map((f) => (typeof f === "string" ? { f } : f)).map((f, i) => ({ ...f, fn: compile(f.f, names), c: f.color || i + 1 }));
+    const tnames = ["t", ...Object.keys(params)];
+    const fns = (cfg.fns || []).map((f) => (typeof f === "string" ? { f } : f)).map((f, i) => ({ ...f,
+      fn: f.f != null ? compile(f.f, names) : null,
+      fx: f.xt != null ? compile(f.xt, tnames) : null, fy: f.yt != null ? compile(f.yt, tnames) : null,
+      c: f.color || i + 1 }));
     const pnames = Object.keys(params);
     const ev = (e) => compile(e, pnames)(...pnames.map((k) => vals[k]));
     const W = 640, H = Math.round(W * (cfg.aspect || 0.62));
@@ -448,6 +452,19 @@
         parts.push(`<polygon class="sh c${s.color || 1}" points="${bot.join(" ")} ${top.reverse().join(" ")}"/>`);
       }
       for (const f of fns) {
+        if (f.fx) {
+          // параметрическая кривая x(t), y(t)
+          if (f.show && !ev(f.show)) continue;
+          const [ta, tb] = (f.t || [0, 1]).map((v) => (typeof v === "string" ? ev(v) : v));
+          const n = f.n || 800; let d = "", pen = false;
+          for (let i = 0; i <= n; i++) {
+            const t = ta + ((tb - ta) * i) / n, a = [t, ...pnames.map((k) => vals[k])];
+            let x, y; try { x = f.fx(...a); y = f.fy(...a); } catch { x = NaN; }
+            if (isFinite(x) && isFinite(y)) { d += `${pen ? "L" : "M"}${X(x).toFixed(1)},${Y(y).toFixed(1)}`; pen = true; } else pen = false;
+          }
+          parts.push(`<path class="fn c${f.c}${f.dash ? " dash" : ""}${f.thin ? " thin" : ""}" d="${d}"/>`);
+          continue;
+        }
         const n = 600; let d = "", pen = false, prev = null;
         const [a, b] = f.domain ? f.domain.map((v) => (typeof v === "string" ? ev(v) : v)) : [x0, x1];
         for (let i = 0; i <= n; i++) {
@@ -461,6 +478,30 @@
       }
       for (const v of cfg.vlines || []) { const o = typeof v === "object" ? v : { x: v }; const x = ev(o.x); parts.push(`<line class="vl c${o.color || 4}" x1="${X(x)}" x2="${X(x)}" y1="0" y2="${H}"/>`); if (o.label) parts.push(`<text class="lbl c${o.color || 4}" x="${X(x) + 4}" y="14">${esc(o.label)}</text>`); }
       for (const v of cfg.hlines || []) { const o = typeof v === "object" ? v : { y: v }; const y = ev(o.y); parts.push(`<line class="vl c${o.color || 4}" y1="${Y(y)}" y2="${Y(y)}" x1="0" x2="${W}"/>`); if (o.label) parts.push(`<text class="lbl c${o.color || 4}" x="${W - 4}" y="${Y(y) - 5}" text-anchor="end">${esc(o.label)}</text>`); }
+      for (const c of cfg.circles || []) {
+        if (c.show && !ev(c.show)) continue;
+        const cx = ev(c.x), cy = ev(c.y), r = ev(c.r);
+        parts.push(`<ellipse class="circ c${c.color || 4}${c.dash ? " dash" : ""}"${c.fill ? ` style="fill: var(--c${c.color || 4}s)"` : ""} cx="${X(cx)}" cy="${Y(cy)}" rx="${Math.abs(X(cx + r) - X(cx))}" ry="${Math.abs(Y(cy + r) - Y(cy))}"/>`);
+      }
+      for (const g of cfg.segs || []) {
+        if (g.show && !ev(g.show)) continue;
+        parts.push(`<line class="seg c${g.color || 4}${g.dash ? " dash" : ""}" x1="${X(ev(g.x1))}" y1="${Y(ev(g.y1))}" x2="${X(ev(g.x2))}" y2="${Y(ev(g.y2))}"/>`);
+      }
+      for (const a of cfg.arrows || []) {
+        // стрелка-вектор из (x, y) длины (dx, dy) в единицах графика
+        if (a.show && !ev(a.show)) continue;
+        let xa, ya, dx, dy; try { xa = ev(a.x); ya = ev(a.y); dx = ev(a.dx); dy = ev(a.dy); } catch { continue; }
+        const px = X(xa), py = Y(ya), qx = X(xa + dx), qy = Y(ya + dy), L = Math.hypot(qx - px, qy - py);
+        if (!isFinite(L)) continue;
+        const cls = `c${a.color || 2}`;
+        if (L > 2) {
+          const ang = Math.atan2(qy - py, qx - px), h = Math.min(11, L * 0.5);
+          const bx = qx - h * 0.8 * Math.cos(ang), by = qy - h * 0.8 * Math.sin(ang);
+          const h1 = [qx - h * Math.cos(ang - 0.4), qy - h * Math.sin(ang - 0.4)], h2 = [qx - h * Math.cos(ang + 0.4), qy - h * Math.sin(ang + 0.4)];
+          parts.push(`<line class="vec ${cls}" x1="${px}" y1="${py}" x2="${bx}" y2="${by}"/><polygon class="head ${cls}" points="${qx},${qy} ${h1[0]},${h1[1]} ${h2[0]},${h2[1]}"/>`);
+        }
+        if (a.label) parts.push(`<text class="lbl ${cls}" x="${qx + (a.lx || 6)}" y="${qy + (a.ly || -6)}">${esc(a.label.replace(/\{(\w+)\}/g, (m, k) => (k in vals ? fmtNum(vals[k]) : m)))}</text>`);
+      }
       for (const p of cfg.points || []) {
         let x, y; try { x = ev(p.x); y = ev(p.y); } catch { continue; }
         if (!isFinite(x) || !isFinite(y)) continue;

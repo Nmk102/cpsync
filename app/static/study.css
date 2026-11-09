@@ -199,7 +199,7 @@ details.box.answer > summary { color: var(--c1); }
 .md svg.fig text.c1, .md svg.fig .tc1 { fill: var(--c1); } .md svg.fig .tc2 { fill: var(--c2); } .md svg.fig .tc3 { fill: var(--c3); }
 .md svg.fig .tc4 { fill: var(--c4); } .md svg.fig .tc5 { fill: var(--c5); }
 .md svg.fig .p1 { fill: var(--c1); stroke: none; } .md svg.fig .p2 { fill: var(--c2); stroke: none; } .md svg.fig .p3 { fill: var(--c3); stroke: none; }
-.md svg.fig .p5 { fill: var(--c5); stroke: none; }
+.md svg.fig .p4 { fill: var(--c4); stroke: none; } .md svg.fig .p5 { fill: var(--c5); stroke: none; }
 .figcap { text-align: center; color: var(--muted); font-size: 14px; margin-top: -8px; margin-bottom: 16px; }
 
 /* интерактивный график */
@@ -216,6 +216,11 @@ details.box.answer > summary { color: var(--c1); }
 .plot .pt.open { fill: var(--panel) !important; stroke-width: 2.2; }
 .plot .lbl { font-size: 13px; font-weight: 600; }
 .plot .sh { stroke: none; }
+.plot .fn.thin { stroke-width: 1.6; }
+.plot ellipse.circ { fill: none; stroke-width: 1.8; }
+.plot ellipse.circ.dash, .plot line.seg.dash { stroke-dasharray: 6 5; }
+.plot line.seg { stroke-width: 1.6; fill: none; }
+.plot line.vec { stroke-width: 2.6; fill: none; } .plot polygon.head { stroke: none; }
 .plot .c1 { stroke: var(--c1); fill: var(--c1); } .plot .c2 { stroke: var(--c2); fill: var(--c2); } .plot .c3 { stroke: var(--c3); fill: var(--c3); }
 .plot .c4 { stroke: var(--c4); fill: var(--c4); } .plot .c5 { stroke: var(--c5); fill: var(--c5); }
 .plot path.fn, .plot line.vl { fill: none; }
