@@ -168,6 +168,7 @@ a.pill:hover { background: var(--line); }
 .box.key .box-title { color: var(--c5); }
 .box.formula { text-align: center; background: var(--soft); border-color: transparent; }
 .box.formula .box-title { text-align: left; }
+.box.formula ol, .box.formula ul { text-align: left; }
 .box.example { border-style: dashed; }
 .box.example > .box-title::before { content: "Пример. "; color: var(--muted); font-weight: 600; }
 .box.task { border: 1px solid var(--line); border-left: 4px solid var(--ink); }
@@ -275,3 +276,15 @@ details.box.answer > summary { color: var(--c1); }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--new, #e0503a); flex: none; }
 .tag.nonote { background: var(--g1bg); color: var(--g1); display: inline-flex; align-items: center; gap: 4px; }
 .st-note.warn { background: var(--g1bg); }
+
+/* схемы из файлов учителя с цветными подписями */
+.md svg.scanfig { overflow: visible; }
+.md svg.scanfig image.scan { image-rendering: auto; }
+@media (prefers-color-scheme: dark) { .md svg.scanfig image.scan { filter: invert(1); } }
+.md svg.scanfig text.lb { font-family: "KaTeX_Math", "Times New Roman", serif; font-style: italic; font-size: 20px; font-weight: 700;
+  paint-order: stroke; stroke: var(--panel, #fff); stroke-width: 3px; stroke-linejoin: round; }
+.md svg.scanfig text.lb.lt { fill: #c4520a; }
+@media (prefers-color-scheme: dark) { .md svg.scanfig text.lb.lt { fill: #f0a35e; } }
+.md svg.scanfig text.lb.lp { fill: var(--c3); font-style: normal; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 16px; }
+.md svg.scanfig text.lb.lg { fill: var(--muted); }
+.md svg.scanfig tspan.sb { font-size: 14px; }
